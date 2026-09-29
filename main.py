@@ -62,6 +62,11 @@ def run_headless(seed: int, days: int) -> int:
     print(f"P/L: £{summary['profit_loss']:+,.2f}")
     print(f"News items: {len(sim.market.events.news_feed)}")
     print(f"Active events: {len(sim.market.events.active_events)}")
+    print(f"Bot trades logged: {len(sim.bots.activity_feed)}")
+    print("Leaderboard:")
+    for row in sim.leaderboard():
+        tag = " <-- you" if row["is_player"] else f" [{row['persona']}]"
+        print(f"  #{row['rank']} {row['name']:16} £{row['net_worth']:10,.0f}{tag}")
     print(f"Price change spread: {max(changes) - min(changes):.1f} percentage points")
     print(f"Unique rounded changes: {len(set(round(c, 1) for c in changes))}")
 

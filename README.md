@@ -10,10 +10,11 @@ Watch an evolving toy economy, decide when to buy or sell, and see whether readi
 - Discrete daily simulation ticks driven by fundamentals, sectors, sentiment, news/events, market regimes, and noise
 - Deterministic seeded RNG for reproducible runs
 - Buy/sell trading with cash and portfolio tracking
+- **6 NPC trader bots** (value, momentum, growth, panic, noise) that compete on the same market, create an activity feed / leaderboard, and apply light supply/demand pressure to prices
 - News feed + simple rumour system
-- Pygame UI with price charts, company info, and simulation controls
+- Pygame UI with price charts, company info, traders panel, and simulation controls
 - JSON save/load
-- Debug mode showing fair value and price-movement components
+- Debug mode showing fair value and price-movement components (including bot flow)
 
 ## Requirements
 

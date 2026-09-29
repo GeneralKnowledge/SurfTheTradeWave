@@ -72,6 +72,7 @@ def test_movement_components_recorded():
             + m.event_effect
             + m.sentiment_effect
             + m.market_effect
+            + m.flow_effect
             + m.noise_effect
         )) < 1e-12
 

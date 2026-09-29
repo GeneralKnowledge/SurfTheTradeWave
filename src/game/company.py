@@ -23,6 +23,7 @@ class PriceMovement:
     event_effect: float = 0.0
     sentiment_effect: float = 0.0
     market_effect: float = 0.0
+    flow_effect: float = 0.0
     noise_effect: float = 0.0
 
     @property
@@ -33,6 +34,7 @@ class PriceMovement:
             + self.event_effect
             + self.sentiment_effect
             + self.market_effect
+            + self.flow_effect
             + self.noise_effect
         )
 
@@ -43,6 +45,7 @@ class PriceMovement:
             "event_effect": self.event_effect,
             "sentiment_effect": self.sentiment_effect,
             "market_effect": self.market_effect,
+            "flow_effect": self.flow_effect,
             "noise_effect": self.noise_effect,
             "total": self.total,
         }
@@ -146,6 +149,7 @@ class Company:
             event_effect=movement_data.get("event_effect", 0.0),
             sentiment_effect=movement_data.get("sentiment_effect", 0.0),
             market_effect=movement_data.get("market_effect", 0.0),
+            flow_effect=movement_data.get("flow_effect", 0.0),
             noise_effect=movement_data.get("noise_effect", 0.0),
         )
         return cls(

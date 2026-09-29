@@ -15,6 +15,7 @@ from src.ui import colours
 from src.ui.company_view import Button, CompanyView
 from src.ui.market_view import MarketView
 from src.ui.news_panel import NewsPanel
+from src.ui.traders_panel import TradersPanel
 
 
 class MainWindow:
@@ -32,7 +33,8 @@ class MainWindow:
         m = colours.MARGIN
         self.market_view = MarketView(pygame.Rect(m, 110, 620, 340))
         self.company_view = CompanyView(pygame.Rect(m, 460, 620, 308))
-        self.news_panel = NewsPanel(pygame.Rect(640, 110, 528, 400))
+        self.news_panel = NewsPanel(pygame.Rect(640, 110, 528, 220))
+        self.traders_panel = TradersPanel(pygame.Rect(640, 340, 528, 180))
 
         companies = self.sim.market.company_list()
         if companies:
@@ -49,7 +51,7 @@ class MainWindow:
             Button(pygame.Rect(840, 575, 100, 32), "DEBUG", "debug"),
             Button(pygame.Rect(950, 575, 100, 32), "+100D", "day100"),
         ]
-        self.status = "Ready. Press NEXT DAY or FAST to simulate."
+        self.status = "Ready. 6 NPC traders share this market with you."
         self.paused = True
         self.fast = False
         self._accum = 0.0
@@ -210,7 +212,12 @@ class MainWindow:
             self.sim.player,
             debug=self.sim.debug_mode,
         )
-        self.news_panel.draw(self.screen, self.sim.news())
+        self.news_panel.draw(self.screen, self.sim.news(limit=5))
+        self.traders_panel.draw(
+            self.screen,
+            self.sim.leaderboard(),
+            self.sim.bot_activity(limit=8),
+        )
         self._draw_controls()
         self._draw_positions()
 

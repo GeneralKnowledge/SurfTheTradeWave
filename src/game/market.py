@@ -72,8 +72,11 @@ class Market:
     def company_list(self) -> list[Company]:
         return list(self.companies.values())
 
-    def step(self) -> dict[str, Any]:
-        """Advance the market by one simulated day."""
+    def step(self, flow_pressure: dict[str, float] | None = None) -> dict[str, Any]:
+        """Advance the market by one simulated day.
+
+        flow_pressure: optional per-company price effects from bot/player order flow.
+        """
         self.day += 1
         summary: dict[str, Any] = {
             "day": self.day,
@@ -82,6 +85,7 @@ class Market:
             "state_change": None,
             "movements": {},
         }
+        flow_pressure = flow_pressure or {}
 
         # 1. Evolve fundamentals slightly.
         self._evolve_fundamentals()
@@ -120,7 +124,10 @@ class Market:
 
         # 6. Price movement for each company.
         for company in self.companies.values():
-            movement = self._compute_price_movement(company)
+            movement = self._compute_price_movement(
+                company,
+                flow_effect=flow_pressure.get(company.id, 0.0),
+            )
             new_price = company.share_price * (1.0 + movement.total)
             company.apply_price(new_price, movement)
             company.record_price(self.day)
@@ -228,7 +235,11 @@ class Market:
             company.growth_rate += event.growth_effect
             company.volatility = min(1.2, company.volatility + event.volatility_effect * 0.5)
 
-    def _compute_price_movement(self, company: Company) -> PriceMovement:
+    def _compute_price_movement(
+        self,
+        company: Company,
+        flow_effect: float = 0.0,
+    ) -> PriceMovement:
         sector = self.sectors[company.sector]
         effects = self.economy.effects()
         vol_mult = effects["volatility_mult"]
@@ -255,6 +266,9 @@ class Market:
         market_effect = effects["price_pressure"] + self.economy.overall_sentiment * 0.006
         market_effect = max(-0.05, min(0.03, market_effect))
 
+        # Bot / trader order-flow pressure (supply & demand).
+        flow_effect = max(-0.035, min(0.035, flow_effect))
+
         # Random noise scaled by volatility (not a pure random walk driver).
         noise_sigma = 0.006 * company.volatility * sector.volatility * vol_mult
         # Commodity-exposed names get a bit more idiosyncratic noise.
@@ -268,6 +282,7 @@ class Market:
             event_effect=event_effect,
             sentiment_effect=sentiment_effect,
             market_effect=market_effect,
+            flow_effect=flow_effect,
             noise_effect=noise_effect,
         )
         # Hard daily clamp to keep the prototype numerically stable.
@@ -280,6 +295,7 @@ class Market:
                 event_effect=movement.event_effect * scale,
                 sentiment_effect=movement.sentiment_effect * scale,
                 market_effect=movement.market_effect * scale,
+                flow_effect=movement.flow_effect * scale,
                 noise_effect=movement.noise_effect * scale,
             )
         return movement

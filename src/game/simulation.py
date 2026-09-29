@@ -1,10 +1,11 @@
-"""Top-level simulation combining market and player."""
+"""Top-level simulation combining market, player, and NPC bots."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.game.bots import BotManager, flow_to_price_effects
 from src.game.company import Company
 from src.game.market import Market
 from src.game.player import Player
@@ -13,11 +14,12 @@ from src.game import trading
 
 @dataclass
 class Simulation:
-    """Owns market + player and exposes the public game API."""
+    """Owns market + player + bots and exposes the public game API."""
 
     seed: int = 42
     market: Market = field(init=False)
     player: Player = field(default_factory=Player)
+    bots: BotManager = field(default_factory=BotManager)
     debug_mode: bool = False
     auto_run: bool = False
     auto_speed_ms: int = 400
@@ -34,11 +36,14 @@ class Simulation:
         return self.market.companies
 
     def step(self) -> dict[str, Any]:
-        """Advance one day and update portfolio snapshots."""
-        result = self.market.step()
-        # Daily change is relative to value at previous close.
-        # Snapshot is taken after prices move so next day's daily_change works.
-        # Before snapshot, daily_change still reflects move vs prior day.
+        """Advance one day: bots trade, then the market prices in their flow."""
+        # Bots act on the upcoming day's open using prior close prices.
+        trade_day = self.market.day + 1
+        flow_notional, activities = self.bots.act(self.market, day=trade_day)
+        flow_effects = flow_to_price_effects(flow_notional, self.companies)
+        result = self.market.step(flow_pressure=flow_effects)
+        result["bot_activity"] = activities
+        result["flow_effects"] = flow_effects
         return result
 
     def end_of_day_snapshot(self) -> None:
@@ -68,6 +73,12 @@ class Simulation:
     def news(self, limit: int = 12) -> list:
         return self.market.events.news_feed[:limit]
 
+    def bot_activity(self, limit: int = 10) -> list:
+        return self.bots.activity_feed[:limit]
+
+    def leaderboard(self) -> list[dict[str, Any]]:
+        return self.bots.leaderboard(self.player, self.companies)
+
     def to_dict(self) -> dict[str, Any]:
         market_data = self.market.to_dict()
         market_data["rng"] = self.market.serialize_rng()
@@ -80,6 +91,7 @@ class Simulation:
             "debug_mode": self.debug_mode,
             "market": market_data,
             "player": self.player.to_dict(),
+            "bots": self.bots.to_dict(),
         }
 
     @classmethod
@@ -87,4 +99,6 @@ class Simulation:
         sim = cls(seed=data["seed"], debug_mode=data.get("debug_mode", False))
         sim.market = Market.from_dict(data["market"])
         sim.player = Player.from_dict(data["player"])
+        if "bots" in data:
+            sim.bots = BotManager.from_dict(data["bots"])
         return sim

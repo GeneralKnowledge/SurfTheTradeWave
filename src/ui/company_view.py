@@ -176,6 +176,7 @@ class CompanyView:
                 f"E {m.event_effect*100:+.2f}% "
                 f"Sent {m.sentiment_effect*100:+.2f}% "
                 f"Mkt {m.market_effect*100:+.2f}% "
+                f"Flow {m.flow_effect*100:+.2f}% "
                 f"N {m.noise_effect*100:+.2f}%"
             )
             surface.blit(
