@@ -5,6 +5,7 @@ Usage:
   python main.py                 # start GUI (seed 42)
   python main.py --seed 12345    # reproducible run
   python main.py --debug         # show fair value / price components
+  python main.py --companion     # compact desktop-companion window
   python main.py --headless 100  # run N days without UI (acceptance check)
   python main.py --test          # run pytest
 """
@@ -15,7 +16,6 @@ import argparse
 import sys
 from pathlib import Path
 
-# Ensure project root is on the path when run as a script.
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -26,21 +26,28 @@ def run_headless(seed: int, days: int) -> int:
 
     sim = Simulation(seed=seed)
     print(f"Starting headless simulation seed={seed} for {days} days")
-    print(f"Companies: {len(sim.companies)}  Cash: £{sim.player.cash:,.0f}")
+    print(
+        f"Companies: {len(sim.companies)}  Unlocked: {len(sim.unlocked_companies())}  "
+        f"Cash: £{sim.player.cash:,.0f}  Level: {sim.progression.level}"
+    )
 
     start_prices = {cid: c.share_price for cid, c in sim.companies.items()}
-    # Buy a diversified starter portfolio for PnL exercise.
-    for cid in list(sim.companies)[:4]:
+    for company in sim.unlocked_companies()[:4]:
         try:
-            sim.buy(cid, 20)
+            sim.buy(company.id, 20)
         except Exception as exc:  # noqa: BLE001
-            print(f"  skip buy {cid}: {exc}")
+            print(f"  skip buy {company.id}: {exc}")
 
     sim.advance(days)
 
     print(f"\n=== Day {sim.day} summary ===")
     print(f"Market state: {sim.market.economy.state.value}")
     print(f"Overall sentiment: {sim.market.economy.overall_sentiment:+.2f}")
+    print(
+        f"Player level {sim.progression.level}  "
+        f"XP {sim.progression.xp}/{sim.progression.xp_needed()}  "
+        f"points {sim.progression.upgrade_points}"
+    )
     print()
     print(f"{'Company':24} {'Start':>8} {'Now':>8} {'Change':>8} {'Sector':16}")
     changes = []
@@ -48,9 +55,10 @@ def run_headless(seed: int, days: int) -> int:
         start = start_prices[cid]
         change = (company.share_price - start) / start * 100
         changes.append(change)
+        lock = "" if sim.progression.is_unlocked(cid) else " [locked]"
         print(
             f"{company.name:24} £{start:7.2f} £{company.share_price:7.2f} "
-            f"{change:+7.1f}% {company.sector:16}"
+            f"{change:+7.1f}% {company.sector:16}{lock}"
         )
         assert company.share_price > 0, f"{company.name} price went non-positive"
 
@@ -60,21 +68,19 @@ def run_headless(seed: int, days: int) -> int:
     print(f"Invested: £{summary['invested']:,.2f}")
     print(f"Total: £{summary['total']:,.2f}")
     print(f"P/L: £{summary['profit_loss']:+,.2f}")
+    print(f"Dividends earned: £{sim.progression.total_dividends_earned:,.2f}")
     print(f"News items: {len(sim.market.events.news_feed)}")
-    print(f"Active events: {len(sim.market.events.active_events)}")
     print(f"Bot trades logged: {len(sim.bots.activity_feed)}")
     print("Leaderboard:")
     for row in sim.leaderboard():
         tag = " <-- you" if row["is_player"] else f" [{row['persona']}]"
         print(f"  #{row['rank']} {row['name']:16} £{row['net_worth']:10,.0f}{tag}")
     print(f"Price change spread: {max(changes) - min(changes):.1f} percentage points")
-    print(f"Unique rounded changes: {len(set(round(c, 1) for c in changes))}")
 
-    # Determinism check
     other = Simulation(seed=seed)
-    for cid in list(other.companies)[:4]:
+    for company in other.unlocked_companies()[:4]:
         try:
-            other.buy(cid, 20)
+            other.buy(company.id, 20)
         except Exception:
             pass
     other.advance(days)
@@ -93,6 +99,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=42, help="RNG seed")
     parser.add_argument("--debug", action="store_true", help="Enable debug overlays")
     parser.add_argument(
+        "--companion",
+        action="store_true",
+        help="Start in compact desktop-companion window",
+    )
+    parser.add_argument(
         "--headless",
         type=int,
         metavar="DAYS",
@@ -109,10 +120,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.headless is not None:
         return run_headless(args.seed, args.headless)
 
-    # GUI path — requires a display.
     from src.ui.main_window import run_game
 
-    run_game(seed=args.seed, debug=args.debug)
+    run_game(seed=args.seed, debug=args.debug, companion=args.companion)
     return 0
 
 

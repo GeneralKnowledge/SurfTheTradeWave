@@ -47,7 +47,7 @@ def test_different_seeds_diverge():
 def test_save_load_roundtrip(tmp_path):
     sim = Simulation(seed=777)
     sim.advance(25)
-    sim.buy("pixelworks", 30)
+    sim.buy("ironvale", 30)
     sim.advance(5)
     path = tmp_path / "save.json"
     save_game(sim, path)
@@ -56,7 +56,7 @@ def test_save_load_roundtrip(tmp_path):
     assert loaded.day == sim.day
     assert loaded.seed == sim.seed
     assert abs(loaded.player.cash - sim.player.cash) < 1e-9
-    assert loaded.player.portfolio.shares_owned("pixelworks") == 30
+    assert loaded.player.portfolio.shares_owned("ironvale") == 30
     for cid in sim.companies:
         assert abs(loaded.companies[cid].share_price - sim.companies[cid].share_price) < 1e-9
 

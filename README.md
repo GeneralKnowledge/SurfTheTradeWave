@@ -10,11 +10,14 @@ Watch an evolving toy economy, decide when to buy or sell, and see whether readi
 - Discrete daily simulation ticks driven by fundamentals, sectors, sentiment, news/events, market regimes, and noise
 - Deterministic seeded RNG for reproducible runs
 - Buy/sell trading with cash and portfolio tracking
-- **6 NPC trader bots** (value, momentum, growth, panic, noise) that compete on the same market, create an activity feed / leaderboard, and apply light supply/demand pressure to prices
+- **6 NPC trader bots** (value, momentum, growth, panic, noise) with leaderboard, activity feed, and supply/demand flow pressure
+- **Idle progression** (Screen Stocks–inspired): XP/levels, company unlocks, upgrades (offline, dividends, trade volume, base income, auto-pilot), prestige (“Go Public”)
+- **Offline gains**: elapsed real time converts into simulated days (capped, upgradeable)
+- **Companion window**: compact UI for desk-corner play (`--companion` or press `C`)
 - News feed + simple rumour system
-- Pygame UI with price charts, company info, traders panel, and simulation controls
+- Pygame UI with price charts, company info, traders panel, upgrades panel
 - JSON save/load
-- Debug mode showing fair value and price-movement components (including bot flow)
+- Debug mode showing fair value and price-movement components
 
 ## Requirements
 
@@ -29,8 +32,11 @@ pip install -r requirements.txt
 ## How to run
 
 ```bash
-# GUI (default seed 42)
+# Full desk UI (default seed 42)
 python main.py
+
+# Compact companion window
+python main.py --companion
 
 # Reproducible run
 python main.py --seed 12345
@@ -51,16 +57,20 @@ PYTHONPATH=. pytest -v
 
 | Action | How |
 |--------|-----|
-| Select company | Click row in company list |
+| Select company | Click row (locked names show required level) |
 | Buy / Sell | Set quantity, click BUY or SELL |
 | Next day | NEXT or `N` |
 | Advance 5 / 30 / 100 days | Buttons |
 | Pause | PAUSE or `Space` |
 | Auto-run | FAST |
+| Companion / Desk | COMPANION button or `C` |
+| Claim offline (demo) | OFFLINE or `O` |
+| Buy upgrades | Buttons in progression panel |
+| Prestige | PRESTIGE when Lv5 + £25k net |
 | Save / Load | SAVE / LOAD (`saves/save_1.json`) |
 | Debug | DEBUG or `D` |
 
-Starting cash: **£10,000**.
+Starting cash: **£10,000**. Start unlocked: Ironvale, Albion, Sterling, Highstreet.
 
 ## Architecture
 

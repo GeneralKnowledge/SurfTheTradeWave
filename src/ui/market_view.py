@@ -5,6 +5,7 @@ from __future__ import annotations
 import pygame
 
 from src.game.company import Company
+from src.game.progression import COMPANY_UNLOCK_LEVEL
 from src.ui import colours
 
 ROW_HEIGHT = 28
@@ -28,7 +29,12 @@ class MarketView:
                 return company_id
         return None
 
-    def draw(self, surface: pygame.Surface, companies: list[Company]) -> None:
+    def draw(
+        self,
+        surface: pygame.Surface,
+        companies: list[Company],
+        unlocked_ids: set[str] | None = None,
+    ) -> None:
         pygame.draw.rect(surface, colours.BG_PANEL, self.rect)
         pygame.draw.rect(surface, colours.BORDER, self.rect, 1)
 
@@ -47,26 +53,41 @@ class MarketView:
             (self.rect.x + 430, self.rect.y + 10),
         )
 
+        unlocked_ids = unlocked_ids or {c.id for c in companies}
         self._row_rects = []
         y = self.rect.y + 34
         for company in companies:
             row = pygame.Rect(self.rect.x + 4, y, self.rect.width - 8, ROW_HEIGHT)
             self._row_rects.append((company.id, row))
+            locked = company.id not in unlocked_ids
             if company.id == self.selected_id:
                 pygame.draw.rect(surface, colours.SELECTED, row)
 
-            name = self.font.render(company.name, True, colours.TEXT)
+            name_colour = colours.LOCKED if locked else colours.TEXT
+            label = company.name
+            if locked:
+                req = COMPANY_UNLOCK_LEVEL.get(company.id, 1)
+                label = f"{company.name}  [Lv{req}]"
+            name = self.font.render(label, True, name_colour)
             surface.blit(name, (row.x + 8, row.y + 5))
 
-            price = self.font.render(f"£{company.share_price:.2f}", True, colours.TEXT)
+            price_colour = colours.LOCKED if locked else colours.TEXT
+            price = self.font.render(f"£{company.share_price:.2f}", True, price_colour)
             surface.blit(price, (row.x + 246, row.y + 5))
 
             change = company.daily_change_pct
-            colour = colours.UP if change >= 0 else colours.DOWN
+            if locked:
+                colour = colours.LOCKED
+            else:
+                colour = colours.UP if change >= 0 else colours.DOWN
             sign = "+" if change >= 0 else ""
             ch = self.font.render(f"{sign}{change:.1f}%", True, colour)
             surface.blit(ch, (row.x + 336, row.y + 5))
 
-            sector = self.font.render(company.sector, True, colours.TEXT_DIM)
+            sector = self.font.render(
+                company.sector,
+                True,
+                colours.LOCKED if locked else colours.TEXT_DIM,
+            )
             surface.blit(sector, (row.x + 426, row.y + 5))
             y += ROW_HEIGHT
